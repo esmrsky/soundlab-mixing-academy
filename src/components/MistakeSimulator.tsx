@@ -197,6 +197,122 @@ export const MistakeSimulator: React.FC<MistakeSimulatorProps> = ({
           </div>
         </div>
 
+        {/* 6. BOXY MIDRANGE */}
+        <div 
+          className="glass-card" 
+          style={{ 
+            borderColor: mistakes.boxyMidrange ? 'rgba(192, 132, 252, 0.4)' : 'var(--border)', 
+            background: mistakes.boxyMidrange ? 'rgba(192, 132, 252, 0.03)' : 'var(--bg-card)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', color: '#fff' }}>6. Boxy Midrange (500Hz - 800Hz Buildup)</h3>
+            <label className="switch-label">
+              <input 
+                type="checkbox" 
+                className="switch-input"
+                checked={mistakes.boxyMidrange}
+                onChange={() => toggleMistake('boxyMidrange')}
+              />
+              <span className="switch-custom"></span>
+              INJECT
+            </label>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
+            A build-up of energy in the 500Hz - 800Hz region makes tracks sound "hollow" or like they are playing inside a cheap cardboard box. This is typical of low-quality recording spaces or vocal booths.
+          </p>
+          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '10px', fontSize: '11px', color: '#c084fc' }}>
+            <strong>How to Fix:</strong> Apply a narrow parametric EQ cut (subtractive EQ) around 400Hz - 700Hz to clean out the boxy resonance, especially on vocals, snare drums, or acoustic guitars.
+          </div>
+        </div>
+
+        {/* 7. CHOKED DRUMS */}
+        <div 
+          className="glass-card" 
+          style={{ 
+            borderColor: mistakes.chokedDrums ? 'rgba(248, 113, 113, 0.4)' : 'var(--border)', 
+            background: mistakes.chokedDrums ? 'rgba(248, 113, 113, 0.03)' : 'var(--bg-card)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', color: '#fff' }}>7. Choked Drums (Ultra-Fast Compressor Attack)</h3>
+            <label className="switch-label">
+              <input 
+                type="checkbox" 
+                className="switch-input"
+                checked={mistakes.chokedDrums}
+                onChange={() => toggleMistake('chokedDrums')}
+              />
+              <span className="switch-custom"></span>
+              INJECT
+            </label>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
+            Setting a compressor's attack time too fast (e.g. 1ms) clamps down immediately on drum hits. This completely destroys the "snap" or "pop" of the drum stick (transient), leaving the drums sounding weak, flat, and choked.
+          </p>
+          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '10px', fontSize: '11px', color: '#f87171' }}>
+            <strong>How to Fix:</strong> Use a slower compressor attack (30ms - 50ms) to let the initial transient peak pass through uncompressed before the gain reduction activates, keeping the drums punchy.
+          </div>
+        </div>
+
+        {/* 8. DULL MASTER */}
+        <div 
+          className="glass-card" 
+          style={{ 
+            borderColor: mistakes.dullMaster ? 'rgba(251, 191, 36, 0.4)' : 'var(--border)', 
+            background: mistakes.dullMaster ? 'rgba(251, 191, 36, 0.03)' : 'var(--bg-card)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', color: '#fff' }}>8. Dull Master (Missing Treble & Air)</h3>
+            <label className="switch-label">
+              <input 
+                type="checkbox" 
+                className="switch-input"
+                checked={mistakes.dullMaster}
+                onChange={() => toggleMistake('dullMaster')}
+              />
+              <span className="switch-custom"></span>
+              INJECT
+            </label>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
+            A mix that lacks high-frequency energy (10kHz - 20kHz) sounds dark, dull, and distant, as if playing behind a heavy curtain. Air and treble are essential for modern mixes to sound professional and wide.
+          </p>
+          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '10px', fontSize: '11px', color: '#fbbf24' }}>
+            <strong>How to Fix:</strong> Apply a gentle High-Shelf boost (+1dB to +3dB) on the vocals, cymbals, or master bus. Avoid overdoing it, which leads to harshness or ear fatigue.
+          </div>
+        </div>
+
+        {/* 9. EXCESSIVE STEREO WIDENING */}
+        <div 
+          className="glass-card" 
+          style={{ 
+            borderColor: mistakes.excessiveStereoWidening ? 'rgba(34, 211, 238, 0.4)' : 'var(--border)', 
+            background: mistakes.excessiveStereoWidening ? 'rgba(34, 211, 238, 0.03)' : 'var(--bg-card)'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontSize: '15px', color: '#fff' }}>9. Excessive Haas Widening (Mono Clashing)</h3>
+            <label className="switch-label">
+              <input 
+                type="checkbox" 
+                className="switch-input"
+                checked={mistakes.excessiveStereoWidening}
+                onChange={() => toggleMistake('excessiveStereoWidening')}
+              />
+              <span className="switch-custom"></span>
+              INJECT
+            </label>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
+            Delaying one channel of a stereo signal by 10-30ms (Haas Effect) makes it sound extremely wide. However, when summed to mono (like on phone speakers or club systems), it creates heavy phase cancellation, and the sound disappears.
+          </p>
+          <div style={{ borderTop: '1px dashed var(--border)', paddingTop: '10px', fontSize: '11px', color: '#22d3ee' }}>
+            <strong>How to Fix:</strong> Always test your mix in mono. Avoid using delay-based stereo wideners on critical mono-centric tracks like vocals, kick drums, or bass lines.
+          </div>
+        </div>
+
       </div>
 
       <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>

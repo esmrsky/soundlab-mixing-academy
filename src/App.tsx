@@ -34,7 +34,9 @@ function App() {
     updateMasterVolume,
     toggleMistake,
     clearAllMistakes,
-    loadPreset
+    loadPreset,
+    genre,
+    setGenre
   } = useAudioEngine();
 
   // Count active errors
@@ -137,6 +139,8 @@ function App() {
               isPlaying={isPlaying}
               togglePlay={togglePlay}
               isAudioReady={isAudioReady}
+              genre={genre}
+              setGenre={setGenre}
             />
 
             {/* EQ / Compressor Controls */}

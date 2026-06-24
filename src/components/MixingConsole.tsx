@@ -16,6 +16,8 @@ interface MixingConsoleProps {
   isPlaying: boolean;
   togglePlay: () => void;
   isAudioReady: boolean;
+  genre: 'pop' | 'synthwave' | 'rock';
+  setGenre: (genre: 'pop' | 'synthwave' | 'rock') => void;
 }
 
 // Custom Drag-to-Turn Rotary Knob Component
@@ -95,6 +97,8 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
   isPlaying,
   togglePlay,
   isAudioReady,
+  genre,
+  setGenre,
 }) => {
 
   const getTrackIcon = (id: TrackId) => {
@@ -117,15 +121,44 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
   return (
     <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isPlaying ? '#10b981' : '#ef4444', boxShadow: isPlaying ? '0 0 8px #10b981' : 'none' }}></span>
             Mixing Desk Console
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-            Select any track to adjust its parametric EQ and compressor chain.
+            Select any track to adjust its parametric EQ and compressor chain. (Tempo: {genre === 'synthwave' ? 110 : genre === 'rock' ? 135 : 120} BPM)
           </p>
+        </div>
+
+        {/* Genre Pill Selectors */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px' }}>
+          {(['pop', 'synthwave', 'rock'] as const).map(g => {
+            const isSelected = genre === g;
+            return (
+              <button
+                key={g}
+                onClick={() => setGenre(g)}
+                style={{
+                  background: isSelected ? 'linear-gradient(135deg, #00f2fe 0%, #4facfe 100%)' : 'transparent',
+                  border: 'none',
+                  color: isSelected ? '#070a12' : 'var(--text-secondary)',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 650,
+                  textTransform: 'uppercase',
+                  fontFamily: 'var(--font-display)',
+                  transition: 'all 0.2s',
+                  boxShadow: isSelected ? '0 2px 5px rgba(0, 242, 254, 0.2)' : 'none'
+                }}
+              >
+                {g}
+              </button>
+            );
+          })}
         </div>
 
         <button 

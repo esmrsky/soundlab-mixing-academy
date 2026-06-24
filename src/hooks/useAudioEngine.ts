@@ -42,6 +42,10 @@ export interface MistakeState {
   washedReverb: boolean;
   harshHighs: boolean;
   phaseCancellation: boolean;
+  boxyMidrange: boolean;
+  chokedDrums: boolean;
+  dullMaster: boolean;
+  excessiveStereoWidening: boolean;
 }
 
 // Initial defaults
@@ -88,6 +92,9 @@ export const useAudioEngine = () => {
     limiterThreshold: -1.0,
   });
 
+  // Genre selection state
+  const [genre, setGenre] = useState<'pop' | 'synthwave' | 'rock'>('pop');
+
   // Mistake Simulator State
   const [mistakes, setMistakes] = useState<MistakeState>({
     muddyLowEnd: false,
@@ -95,6 +102,10 @@ export const useAudioEngine = () => {
     washedReverb: false,
     harshHighs: false,
     phaseCancellation: false,
+    boxyMidrange: false,
+    chokedDrums: false,
+    dullMaster: false,
+    excessiveStereoWidening: false,
   });
 
   // Selected Track for detailed editing
@@ -106,6 +117,8 @@ export const useAudioEngine = () => {
   // Global nodes
   const masterGainRef = useRef<GainNode | null>(null);
   const limiterRef = useRef<DynamicsCompressorNode | null>(null);
+  const masterLowPassRef = useRef<BiquadFilterNode | null>(null);
+  const haasDelayRef = useRef<DelayNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const reverbRef = useRef<ConvolverNode | null>(null);
   const delayRef = useRef<DelayNode | null>(null);
@@ -135,7 +148,6 @@ export const useAudioEngine = () => {
   const sequencerTimerIdRef = useRef<number | null>(null);
   const nextNoteTimeRef = useRef<number>(0.0);
   const currentStepRef = useRef<number>(0); // 0 to 63 (4 bars of 16 steps)
-  const bpm = 120;
   const scheduleAheadTime = 0.1; // schedule 100ms ahead
   const lookaheadInterval = 40.0; // poll every 40ms
 
@@ -160,6 +172,10 @@ export const useAudioEngine = () => {
     // Create Master chain
     const masterGain = ctx.createGain();
     const limiter = ctx.createDynamicsCompressor();
+    const masterLowPass = ctx.createBiquadFilter();
+    const haasDelay = ctx.createDelay(0.1);
+    const masterSplitter = ctx.createChannelSplitter(2);
+    const masterMerger = ctx.createChannelMerger(2);
     const analyser = ctx.createAnalyser();
     
     // Configure Limiter as a brickwall protection
@@ -169,16 +185,34 @@ export const useAudioEngine = () => {
     limiter.attack.setValueAtTime(0.001, ctx.currentTime);
     limiter.release.setValueAtTime(0.05, ctx.currentTime);
 
+    // Configure master Lowpass (bypass by default)
+    masterLowPass.type = 'lowpass';
+    masterLowPass.frequency.setValueAtTime(20000, ctx.currentTime);
+
+    // Configure Haas Delay (bypass / 0ms by default)
+    haasDelay.delayTime.setValueAtTime(0.0, ctx.currentTime);
+
     analyser.fftSize = 512;
     analyser.smoothingTimeConstant = 0.75;
 
     // Connect Master chain
-    limiter.connect(masterGain);
-    masterGain.connect(analyser);
+    limiter.connect(masterLowPass);
+    masterLowPass.connect(masterGain);
+    
+    masterGain.connect(masterSplitter);
+    // Connect Left directly
+    masterSplitter.connect(masterMerger, 0, 0);
+    // Connect Right through haasDelay
+    masterSplitter.connect(haasDelay, 1, 0);
+    haasDelay.connect(masterMerger, 0, 1);
+    
+    masterMerger.connect(analyser);
     analyser.connect(ctx.destination);
 
     masterGainRef.current = masterGain;
     limiterRef.current = limiter;
+    masterLowPassRef.current = masterLowPass;
+    haasDelayRef.current = haasDelay;
     analyserRef.current = analyser;
 
     // Create Sends: Reverb
@@ -367,6 +401,16 @@ export const useAudioEngine = () => {
         );
       }
     }
+    // Master LowPass for Dull Master mistake
+    if (masterLowPassRef.current) {
+      const lowPassFreq = mistakes.dullMaster ? 4500 : 20000;
+      masterLowPassRef.current.frequency.setValueAtTime(lowPassFreq, ctx.currentTime);
+    }
+    // Haas Delay for Excessive Stereo Widening mistake
+    if (haasDelayRef.current) {
+      const delaySecs = mistakes.excessiveStereoWidening ? 0.025 : 0.0; // 25ms delay
+      haasDelayRef.current.delayTime.setValueAtTime(delaySecs, ctx.currentTime);
+    }
 
     // Track-specific settings
     (Object.keys(tracks) as TrackId[]).forEach(id => {
@@ -409,6 +453,12 @@ export const useAudioEngine = () => {
         midGain = 8;
       }
 
+      // Boxy midrange mistake boosts 600Hz on vocals and guitars
+      if (mistakes.boxyMidrange && (id === 'vocals' || id === 'guitar')) {
+        midFreq = 600;
+        midGain = 8;
+      }
+
       nodes.highPass.frequency.setValueAtTime(highPassFreq, ctx.currentTime);
       nodes.lowShelf.gain.setValueAtTime(lowShelfGain, ctx.currentTime);
       nodes.midPeak.frequency.setValueAtTime(midFreq, ctx.currentTime);
@@ -418,13 +468,22 @@ export const useAudioEngine = () => {
       // Compressor
       // If sausage master mistake is on, crush all track compressors as well
       const isSausage = mistakes.sausageMaster;
-      const compThresh = isSausage ? -35 : state.compressor.bypass ? 0 : state.compressor.threshold;
-      const compRatio = isSausage ? 16 : state.compressor.bypass ? 1 : state.compressor.ratio;
+      let compThresh = isSausage ? -35 : state.compressor.bypass ? 0 : state.compressor.threshold;
+      let compRatio = isSausage ? 16 : state.compressor.bypass ? 1 : state.compressor.ratio;
+      let compAttack = state.compressor.attack;
+      let compRelease = state.compressor.release;
+
+      if (id === 'drums' && mistakes.chokedDrums) {
+        compThresh = -30;
+        compRatio = 8;
+        compAttack = 0.001; // 1ms (chokes transients)
+        compRelease = 0.05; // 50ms
+      }
 
       nodes.compressor.threshold.setValueAtTime(compThresh, ctx.currentTime);
       nodes.compressor.ratio.setValueAtTime(compRatio, ctx.currentTime);
-      nodes.compressor.attack.setValueAtTime(state.compressor.attack, ctx.currentTime);
-      nodes.compressor.release.setValueAtTime(state.compressor.release, ctx.currentTime);
+      nodes.compressor.attack.setValueAtTime(compAttack, ctx.currentTime);
+      nodes.compressor.release.setValueAtTime(compRelease, ctx.currentTime);
 
       // Sends
       // Washed reverb mistake cranks reverb sends
@@ -443,7 +502,7 @@ export const useAudioEngine = () => {
   // Sync state changes with nodes
   useEffect(() => {
     applyAllParameters();
-  }, [tracks, master, mistakes]);
+  }, [tracks, master, mistakes, genre]);
 
   // VU Meters Peak calculation loop
   const startVUMeters = () => {
@@ -743,7 +802,8 @@ export const useAudioEngine = () => {
   };
 
   const advanceStep = () => {
-    const secondsPerBeat = 60.0 / bpm;
+    const currentBPM = genre === 'synthwave' ? 110 : genre === 'rock' ? 135 : 120;
+    const secondsPerBeat = 60.0 / currentBPM;
     // 16th note steps
     const stepDuration = 0.25 * secondsPerBeat;
     nextNoteTimeRef.current += stepDuration;
@@ -755,88 +815,193 @@ export const useAudioEngine = () => {
   const scheduleNextStep = (step: number, time: number) => {
     if (!audioCtxRef.current || !trackNodesRef.current) return;
     const ctx = audioCtxRef.current;
-
-    // --- DRUMS TRACK ---
-    // Kick: standard 4-on-the-floor
-    if (step % 4 === 0) {
-      triggerKick(ctx, time, 1.0);
-    }
-    // Snare: backbeat on 4 and 12
-    if (step % 8 === 4) {
-      triggerSnare(ctx, time, 0.95);
-    }
-    // Hi-hat: 16th notes with accent on off-beats
-    if (step % 2 === 0) {
-      const vol = step % 4 === 2 ? 0.35 : 0.15;
-      triggerHihat(ctx, time, vol);
-    }
-
-    // Chord progression mapping for Bass and Guitars
-    // Am (bars 1 - steps 0-15) -> F (bar 2 - steps 16-31) -> C (bar 3 - steps 32-47) -> G (bar 4 - steps 48-63)
+    
+    const currentBPM = genre === 'synthwave' ? 110 : genre === 'rock' ? 135 : 120;
     const bar = Math.floor(step / 16);
-    let bassRoot = 55.0; // A1
-    let guitarFrequencies = [220.0, 261.63, 329.63]; // A3, C4, E4 (Am chord)
-
-    if (bar === 1) {
-      bassRoot = 43.65; // F1
-      guitarFrequencies = [174.61, 220.0, 261.63]; // F3, A3, C4 (F chord)
-    } else if (bar === 2) {
-      bassRoot = 65.41; // C2
-      guitarFrequencies = [196.0, 261.63, 329.63]; // G3, C4, E4 (C chord)
-    } else if (bar === 3) {
-      bassRoot = 49.00; // G1
-      guitarFrequencies = [196.0, 246.94, 293.66]; // G3, B3, D4 (G chord)
-    }
-
-    // --- BASS TRACK ---
-    // Simple syncopated bassline (root notes)
-    if (step % 4 === 0 || step % 8 === 2) {
-      triggerBassNote(ctx, bassRoot, time, 0.2, 0.9);
-    }
-
-    // --- GUITAR TRACK ---
-    // Pluck rhythm: arpeggiating guitar chords
-    // steps: 0, 3, 6, 8, 11, 14
-    const guitarPluckPattern = [0, 3, 6, 8, 11, 14];
     const relativeStep = step % 16;
-    if (guitarPluckPattern.includes(relativeStep)) {
-      const noteIndex = guitarPluckPattern.indexOf(relativeStep) % guitarFrequencies.length;
-      triggerGuitarNote(ctx, guitarFrequencies[noteIndex], time, 0.35, 0.8);
-    }
+    const stepSecs = (60.0 / currentBPM) * 0.25;
 
-    // --- VOCALS TRACK ---
-    // Melody in Pentatonic scale: A, C, D, E, G
-    // Melodic sequence spanning the 4 bars
-    // Steps to trigger vocal notes:
-    const vocalNotes: Record<number, { freq: number; vowel: 'ah' | 'oh' | 'ee'; length: number }> = {
-      // Bar 1 (Am)
-      0: { freq: 440.0, vowel: 'ah', length: 0.8 }, // A4
-      4: { freq: 493.88, vowel: 'ee', length: 0.6 }, // B4
-      8: { freq: 523.25, vowel: 'oh', length: 1.0 }, // C5
-      14: { freq: 587.33, vowel: 'ah', length: 0.3 }, // D5
+    if (genre === 'pop') {
+      // --- POP ARRANGEMENT ---
+      // Drums: Standard 4-on-the-floor
+      if (step % 4 === 0) triggerKick(ctx, time, 1.0);
+      if (step % 8 === 4) triggerSnare(ctx, time, 0.9);
+      if (step % 2 === 0) {
+        const vol = step % 4 === 2 ? 0.35 : 0.15;
+        triggerHihat(ctx, time, vol);
+      }
 
-      // Bar 2 (F)
-      16: { freq: 523.25, vowel: 'ee', length: 0.7 }, // C5
-      20: { freq: 440.0, vowel: 'oh', length: 0.5 }, // A4
-      24: { freq: 392.0, vowel: 'ah', length: 0.9 }, // G4
-      30: { freq: 440.0, vowel: 'ee', length: 0.4 }, // A4
+      // Chord progression: Am -> F -> C -> G
+      let bassRoot = 55.0; // A1
+      let guitarFrequencies = [220.0, 261.63, 329.63]; // A3, C4, E4
+      if (bar === 1) {
+        bassRoot = 43.65; // F1
+        guitarFrequencies = [174.61, 220.0, 261.63];
+      } else if (bar === 2) {
+        bassRoot = 65.41; // C2
+        guitarFrequencies = [196.0, 261.63, 329.63];
+      } else if (bar === 3) {
+        bassRoot = 49.00; // G1
+        guitarFrequencies = [196.0, 246.94, 293.66];
+      }
 
-      // Bar 3 (C)
-      32: { freq: 523.25, vowel: 'ah', length: 0.8 }, // C5
-      36: { freq: 587.33, vowel: 'ee', length: 0.6 }, // D5
-      40: { freq: 659.25, vowel: 'oh', length: 1.1 }, // E5
-      46: { freq: 587.33, vowel: 'ah', length: 0.3 }, // D5
+      // Bass: standard syncopated 8th notes
+      if (step % 4 === 0 || step % 8 === 2) {
+        triggerBassNote(ctx, bassRoot, time, stepSecs * 1.8, 0.95);
+      }
 
-      // Bar 4 (G)
-      48: { freq: 493.88, vowel: 'ee', length: 0.8 }, // B4
-      52: { freq: 440.0, vowel: 'oh', length: 0.6 }, // A4
-      56: { freq: 392.0, vowel: 'ah', length: 1.2 }, // G4
-    };
+      // Guitar plucking
+      const guitarPluckPattern = [0, 3, 6, 8, 11, 14];
+      if (guitarPluckPattern.includes(relativeStep)) {
+        const noteIndex = guitarPluckPattern.indexOf(relativeStep) % guitarFrequencies.length;
+        triggerGuitarNote(ctx, guitarFrequencies[noteIndex], time, stepSecs * 2.8, 0.8);
+      }
 
-    if (vocalNotes[step]) {
-      const note = vocalNotes[step];
-      const stepSecs = 60.0 / bpm * 0.25;
-      triggerVocalNote(ctx, note.freq, time, note.length * stepSecs * 3.5, note.vowel);
+      // Vocal Pentatonic Melody
+      const vocalNotes: Record<number, { freq: number; vowel: 'ah' | 'oh' | 'ee'; length: number }> = {
+        0: { freq: 440.0, vowel: 'ah', length: 0.8 },
+        4: { freq: 493.88, vowel: 'ee', length: 0.6 },
+        8: { freq: 523.25, vowel: 'oh', length: 1.0 },
+        14: { freq: 587.33, vowel: 'ah', length: 0.3 },
+        16: { freq: 523.25, vowel: 'ee', length: 0.7 },
+        20: { freq: 440.0, vowel: 'oh', length: 0.5 },
+        24: { freq: 392.0, vowel: 'ah', length: 0.9 },
+        30: { freq: 440.0, vowel: 'ee', length: 0.4 },
+        32: { freq: 523.25, vowel: 'ah', length: 0.8 },
+        36: { freq: 587.33, vowel: 'ee', length: 0.6 },
+        40: { freq: 659.25, vowel: 'oh', length: 1.1 },
+        46: { freq: 587.33, vowel: 'ah', length: 0.3 },
+        48: { freq: 493.88, vowel: 'ee', length: 0.8 },
+        52: { freq: 440.0, vowel: 'oh', length: 0.6 },
+        56: { freq: 392.0, vowel: 'ah', length: 1.2 },
+      };
+
+      if (vocalNotes[step]) {
+        const note = vocalNotes[step];
+        triggerVocalNote(ctx, note.freq, time, note.length * stepSecs * 3.5, note.vowel);
+      }
+
+    } else if (genre === 'synthwave') {
+      // --- SYNTHWAVE ARRANGEMENT ---
+      // Drums: Snappy electronic groove
+      if (step % 4 === 0) triggerKick(ctx, time, 1.1); // driving kick
+      if (step % 8 === 4) triggerSnare(ctx, time, 0.9); // gated snare on backbeat
+      // 16th-note hihats with groove accents
+      const hatVol = relativeStep % 4 === 2 ? 0.3 : relativeStep % 2 === 0 ? 0.18 : 0.08;
+      triggerHihat(ctx, time, hatVol);
+
+      // Chords progression: Bm -> G -> A -> F#m
+      let bassRoot = 61.74; // B1 (61.74Hz)
+      let padFrequencies = [246.94, 293.66, 369.99]; // B3, D4, F#4
+      if (bar === 1) {
+        bassRoot = 49.00; // G1
+        padFrequencies = [196.00, 246.94, 293.66];
+      } else if (bar === 2) {
+        bassRoot = 55.00; // A1
+        padFrequencies = [220.00, 277.18, 329.63];
+      } else if (bar === 3) {
+        bassRoot = 46.25; // F#1
+        padFrequencies = [185.00, 220.00, 277.18];
+      }
+
+      // Bass: Pumping 16th-note arpeggiator (Root, Octave, Root, Octave...)
+      const octaveMultiplier = (step % 2 === 0) ? 1.0 : 2.0;
+      triggerBassNote(ctx, bassRoot * octaveMultiplier, time, stepSecs * 0.9, 0.8);
+
+      // Guitar (Synth Pad chords): Slow atmospheric sweeps
+      if (relativeStep === 0 || relativeStep === 8) {
+        // Trigger chord notes spread out slightly
+        padFrequencies.forEach((freq, idx) => {
+          triggerGuitarNote(ctx, freq, time + idx * 0.015, stepSecs * 6, 0.65);
+        });
+      }
+
+      // Vocals (FM Synth lead): arpeggiated 80s synth hook
+      const synthLeadMelody: Record<number, { freq: number; vowel: 'ah' | 'oh' | 'ee'; length: number }> = {
+        0: { freq: 493.88, vowel: 'ee', length: 1.5 }, // B4
+        4: { freq: 554.37, vowel: 'ee', length: 1.5 }, // C#5
+        8: { freq: 587.33, vowel: 'ah', length: 1.5 }, // D5
+        12: { freq: 698.46, vowel: 'oh', length: 1.5 }, // F#5
+        16: { freq: 392.00, vowel: 'ee', length: 1.5 }, // G4
+        20: { freq: 493.88, vowel: 'ee', length: 1.5 }, // B4
+        24: { freq: 587.33, vowel: 'ah', length: 1.5 }, // D5
+        28: { freq: 493.88, vowel: 'oh', length: 1.5 }, // B4
+        32: { freq: 440.00, vowel: 'ee', length: 1.5 }, // A4
+        36: { freq: 554.37, vowel: 'ee', length: 1.5 }, // C#5
+        40: { freq: 659.25, vowel: 'ah', length: 1.5 }, // E5
+        44: { freq: 554.37, vowel: 'oh', length: 1.5 }, // C#5
+        48: { freq: 369.99, vowel: 'ee', length: 1.5 }, // F#4
+        52: { freq: 440.00, vowel: 'ee', length: 1.5 }, // A4
+        56: { freq: 554.37, vowel: 'ah', length: 3.0 }, // C#5
+      };
+
+      if (synthLeadMelody[step]) {
+        const note = synthLeadMelody[step];
+        triggerVocalNote(ctx, note.freq, time, note.length * stepSecs * 0.95, note.vowel);
+      }
+
+    } else if (genre === 'rock') {
+      // --- ROCK / INDIE ARRANGEMENT ---
+      // Drums: Driving rock beat
+      const isKick = relativeStep === 0 || relativeStep === 6 || relativeStep === 8 || relativeStep === 14;
+      if (isKick) triggerKick(ctx, time, 1.15);
+      
+      const isSnare = relativeStep === 4 || relativeStep === 12;
+      const isGhostSnare = relativeStep === 7 || relativeStep === 15;
+      if (isSnare) triggerSnare(ctx, time, 1.05);
+      if (isGhostSnare) triggerSnare(ctx, time, 0.2);
+
+      if (step % 2 === 0) {
+        triggerHihat(ctx, time, 0.35);
+      }
+
+      // Chords progression: Em -> C -> G -> D
+      let bassRoot = 41.20; // E1 (41.20Hz)
+      let chordFrequencies = [164.81, 196.00, 246.94]; // E3, G3, B3
+      if (bar === 1) {
+        bassRoot = 32.70; // C1
+        chordFrequencies = [130.81, 164.81, 196.00];
+      } else if (bar === 2) {
+        bassRoot = 49.00; // G1
+        chordFrequencies = [196.00, 246.94, 293.66];
+      } else if (bar === 3) {
+        bassRoot = 36.71; // D1
+        chordFrequencies = [146.83, 185.00, 220.00];
+      }
+
+      // Bass: Driving eighth-note chugs
+      if (step % 2 === 0) {
+        triggerBassNote(ctx, bassRoot, time, stepSecs * 1.9, 0.95);
+      }
+
+      // Guitar: Strumming distorted chords
+      const rockGuitarPattern = [0, 2, 4, 8, 10, 12];
+      if (rockGuitarPattern.includes(relativeStep)) {
+        chordFrequencies.forEach((freq, idx) => {
+          triggerGuitarNote(ctx, freq, time + idx * 0.012, stepSecs * 1.7, 0.85);
+        });
+      }
+
+      // Vocals: Grittier E-minor melodies
+      const rockVocalMelody: Record<number, { freq: number; vowel: 'ah' | 'oh' | 'ee'; length: number }> = {
+        0: { freq: 392.00, vowel: 'ah', length: 0.9 }, // G4
+        4: { freq: 440.00, vowel: 'ah', length: 0.7 }, // A4
+        8: { freq: 493.88, vowel: 'ee', length: 1.1 }, // B4
+        16: { freq: 523.25, vowel: 'ee', length: 0.8 }, // C5
+        20: { freq: 493.88, vowel: 'oh', length: 0.6 }, // B4
+        24: { freq: 440.00, vowel: 'ah', length: 1.0 }, // A4
+        32: { freq: 587.33, vowel: 'ah', length: 0.9 }, // D5
+        36: { freq: 493.88, vowel: 'ee', length: 0.7 }, // B4
+        40: { freq: 392.00, vowel: 'oh', length: 1.2 }, // G4
+        48: { freq: 440.00, vowel: 'ah', length: 0.8 }, // A4
+        52: { freq: 392.00, vowel: 'ah', length: 0.6 }, // G4
+        56: { freq: 329.63, vowel: 'ee', length: 1.4 }, // E4
+      };
+
+      if (rockVocalMelody[step]) {
+        const note = rockVocalMelody[step];
+        triggerVocalNote(ctx, note.freq, time, note.length * stepSecs * 3.2, note.vowel);
+      }
     }
   };
 
@@ -968,6 +1133,10 @@ export const useAudioEngine = () => {
       washedReverb: false,
       harshHighs: false,
       phaseCancellation: false,
+      boxyMidrange: false,
+      chokedDrums: false,
+      dullMaster: false,
+      excessiveStereoWidening: false,
     });
   };
 
@@ -1100,5 +1269,7 @@ export const useAudioEngine = () => {
     toggleMistake,
     clearAllMistakes,
     loadPreset,
+    genre,
+    setGenre,
   };
 };
