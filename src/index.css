@@ -385,3 +385,6 @@ input[type="range"].fader-input::-webkit-slider-thumb:hover {
 .wave-bar {
   animation: signal-wave 1.2s infinite ease-in-out;
 }
+
+/* reading comfort: balance display text */
+h1, h2, h3 { text-wrap: balance; }
