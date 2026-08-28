@@ -388,3 +388,22 @@ input[type="range"].fader-input::-webkit-slider-thumb:hover {
 
 /* reading comfort: balance display text */
 h1, h2, h3 { text-wrap: balance; }
+
+/* The brand, the three tabs and the transport button need 784px to sit on one
+   row. Below that the tabs had nowhere to go and every label broke mid-phrase —
+   "Studio / Console", "Mistake / Simulator" — which is what a tablet in portrait
+   got at 768px. Keep each label whole, and give the tabs their own full-width
+   row under the brand rather than letting them squeeze. */
+.site-header .header-tabs button { white-space: nowrap; }
+
+@media (max-width: 800px) {
+  .site-header { flex-wrap: wrap; row-gap: 12px; }
+  .site-header .header-tabs {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .site-header .header-tabs::-webkit-scrollbar { display: none; }
+}

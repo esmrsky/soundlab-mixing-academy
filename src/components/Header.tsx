@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeMistakesCount,
 }) => {
   return (
-    <header className="glass-panel" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '0 0 12px 12px', borderTop: 'none', borderInline: 'none' }}>
+    <header className="glass-panel site-header" style={{ padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '0 0 12px 12px', borderTop: 'none', borderInline: 'none' }}>
       
       {/* Brand logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -48,7 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Tabs */}
-      <nav style={{ display: 'flex', gap: '8px' }}>
+      <nav className="header-tabs" style={{ display: 'flex', gap: '8px' }}>
         <button
           onClick={() => setActiveTab('console')}
           style={{
