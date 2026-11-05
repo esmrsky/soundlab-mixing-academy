@@ -106,7 +106,7 @@ export const LessonSection: React.FC<LessonSectionProps> = ({
                   border: '1px solid',
                   borderColor: isActive ? 'var(--accent-cyan)' : 'transparent',
                   background: isActive ? 'rgba(0, 242, 254, 0.05)' : 'transparent',
-                  transition: 'all 0.2s ease',
+                  transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -212,7 +212,7 @@ export const LessonSection: React.FC<LessonSectionProps> = ({
                         textAlign: 'left',
                         fontSize: '12px',
                         cursor: 'pointer',
-                        transition: 'all 0.15s'
+                        transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease)'
                       }}
                     >
                       {option}
@@ -435,7 +435,7 @@ export const LessonSection: React.FC<LessonSectionProps> = ({
                         textAlign: 'left',
                         fontSize: '12px',
                         cursor: 'pointer',
-                        transition: 'all 0.15s'
+                        transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease)'
                       }}
                     >
                       {option}

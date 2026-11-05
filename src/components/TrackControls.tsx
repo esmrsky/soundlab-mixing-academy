@@ -521,11 +521,13 @@ export const TrackControls: React.FC<TrackControlsProps> = ({
               <div 
                 style={{ 
                   width: '100%', 
-                  height: `${Math.min(100, (reductionVal / 18) * 100)}%`, // max 18dB reduction visually
+                  height: '100%',
+                  transform: `scaleY(${Math.min(1, reductionVal / 18)})`, // max 18dB reduction visually
+                  transformOrigin: '50% 0',
                   backgroundColor: '#f87171',
                   position: 'absolute',
                   top: 0,
-                  transition: 'height 0.08s ease-out',
+                  transition: 'transform 0.08s var(--ease)',
                   boxShadow: '0 0 6px rgba(239, 68, 68, 0.4)'
                 }}
               />

@@ -151,7 +151,7 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
                   fontWeight: 650,
                   textTransform: 'uppercase',
                   fontFamily: 'var(--font-display)',
-                  transition: 'all 0.2s',
+                  transition: 'color var(--t1) var(--ease), box-shadow var(--t1) var(--ease)',
                   boxShadow: isSelected ? '0 2px 5px rgba(0, 242, 254, 0.2)' : 'none'
                 }}
               >
@@ -210,7 +210,7 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
                   alignItems: 'center',
                   gap: '12px',
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease',
+                  transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), box-shadow var(--t1) var(--ease)',
                   position: 'relative',
                 }}
               >
@@ -249,7 +249,7 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
                       fontWeight: 'bold',
                       cursor: 'pointer',
                       boxShadow: track.solo ? '0 0 8px rgba(245, 158, 11, 0.25)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease), box-shadow var(--t1) var(--ease)'
                     }}
                     title="Solo track"
                   >
@@ -272,7 +272,7 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
                       fontWeight: 'bold',
                       cursor: 'pointer',
                       boxShadow: track.mute ? '0 0 8px rgba(239, 68, 68, 0.25)' : 'none',
-                      transition: 'all 0.15s ease'
+                      transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease), box-shadow var(--t1) var(--ease)'
                     }}
                     title="Mute track"
                   >
@@ -287,7 +287,7 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
                     <div 
                       className="level-meter-fill"
                       style={{ 
-                        height: `${peakLevels[id] * 100}%`,
+                        clipPath: `inset(${(1 - peakLevels[id]) * 100}% 0 0 0)`,
                       }}
                     />
                   </div>
@@ -360,7 +360,7 @@ export const MixingConsole: React.FC<MixingConsoleProps> = ({
                 <div 
                   className="level-meter-fill"
                   style={{ 
-                    height: `${peakLevels.master * 100}%`,
+                    clipPath: `inset(${(1 - peakLevels.master) * 100}% 0 0 0)`,
                   }}
                 />
               </div>

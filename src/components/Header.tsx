@@ -65,7 +65,7 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'all 0.2s'
+            transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease)'
           }}
         >
           <Music size={14} style={{ color: activeTab === 'console' ? 'var(--accent-cyan)' : 'inherit' }} />
@@ -88,7 +88,7 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'all 0.2s'
+            transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease)'
           }}
         >
           <BookOpen size={14} style={{ color: activeTab === 'academy' ? 'var(--color-vocals)' : 'inherit' }} />
@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
             alignItems: 'center',
             gap: '8px',
             position: 'relative',
-            transition: 'all 0.2s'
+            transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease)'
           }}
         >
           <ShieldAlert size={14} style={{ color: activeTab === 'mistakes' ? '#f87171' : 'inherit' }} />
@@ -166,7 +166,7 @@ export const Header: React.FC<HeaderProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'all 0.2s'
+            transition: 'background-color var(--t1) var(--ease), border-color var(--t1) var(--ease), color var(--t1) var(--ease)'
           }}
           title={isPlaying ? 'Stop playback' : 'Start playback'}
         >

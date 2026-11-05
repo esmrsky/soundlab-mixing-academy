@@ -210,6 +210,7 @@ function App() {
             <span>Created for Audio Training</span>
           </div>
           <p>© 2026 SoundLab Academy. All rights reserved. Run entirely client-side in the browser.</p>
+          <a href="https://esmrsky.github.io/" style={{ display: 'inline-flex', alignItems: 'center', minHeight: '44px', color: 'inherit' }}>← All projects</a>
         </div>
       </footer>
 
